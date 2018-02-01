@@ -55,8 +55,8 @@ def write_to_db(pool_information, price):
     sql = """CREATE TABLE IF NOT EXISTS ledger (
         minername TEXT NOT NULL,
         hashrate INTEGER,
-        coinsmined TEXT,
-        price TEXT,
+        coinsmined REAL,
+        price REAL,
         timestamped TIMESTAMP
     )"""
     cursor.execute(sql)
@@ -71,18 +71,18 @@ def write_to_db(pool_information, price):
 
     for key in workers:
         worker_keys.append(key)
-    
+
     for worker in worker_keys:
         cursor.execute("""INSERT INTO ledger (minername,
         hashrate,
         coinsmined,
         price,
-        timestamped) VALUES (?, ?, ?)""", (worker,
+        timestamped) VALUES (?, ?, ?, ?, ?)""".format(worker,
                                            workers[worker]['hr2'],
-                                           0, # TODO mmmm not to sure how to manage this, do later
+                                           workers[worker]['hr2'] * 0.001, # approx 1mh/s for 30 mins = 0.001 pirl
                                            price,
                                            current_time))
-    
+
     # Commit the entries to the table
     conn.commit()
     conn.close()

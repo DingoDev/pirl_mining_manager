@@ -20,14 +20,14 @@ def import_ledger():
 def open_csv():
     """ Open the csv file for writing """
     excel_writer = {}
-    with open('mining_ledger.csv') as mining_ledger:
+    with open('mining_ledger.csv', 'wb') as mining_ledger:
         excel_writer = csv.writer(mining_ledger, quoting=csv.QUOTE_MINIMAL)
     return excel_writer
 
 def write_to_csv(csv_writer, ledger):
     """ Write the ledger into the csv file """
     for row in ledger:
-        csv_writer.writerow() # TODO write the rows
+        csv_writer.writerow([row[0], row[1], row[2], row[3], row[4]]) # TODO write the rows
 
 def main():
     """ To take the sqlite3 db and move it into a csv file """
