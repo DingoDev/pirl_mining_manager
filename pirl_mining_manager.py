@@ -32,6 +32,7 @@ def pull_from_pool():
     try:
         res = requests.get(POOL_MINER_API + POOL_MINER_ACCOUNT)
         if res.ok:
+            print "We hit the Pirl miner API just fine"
             res.json()
         else:
             print("A non-ok status code was returned", res.status_code)
@@ -42,10 +43,15 @@ def pull_from_pool():
 
 def get_pirl_price():
     """ HTML scraping the price, there is some API but it's a little weird """
-    page = urllib2.urlopen(PIRL_COIN_MARKET_CAP)
-    soup = BeautifulSoup(page)
-    # Grab the price from the page, given lovingly a good class name
-    price = soup.find('span', {'class': 'data-currency-value'}).text
+    price = 0
+    try:
+        page = urllib2.urlopen(PIRL_COIN_MARKET_CAP)
+        soup = BeautifulSoup(page)
+        # Grab the price from the page, given lovingly a good class name
+        price = soup.find('span', {'class': 'data-currency-value'}).text
+    except Exception as e:
+        print "Error ocurred in find the price, will set as 0 for this iteration"
+        print e
     return price
 
 def write_to_db(pool_information, price):
@@ -72,17 +78,25 @@ def write_to_db(pool_information, price):
     for key in workers:
         worker_keys.append(key)
 
+    avg_hash = 0
+
     for worker in worker_keys:
+        avg_hash = avg_hash + workers[worker['hr2']]
         cursor.execute("""INSERT INTO ledger (minername,
         hashrate,
         coinsmined,
         price,
-        timestamped) VALUES (?, ?, ?, ?, ?)""".format(worker,
+        timestamped) VALUES (?, ?, ?, ?, ?)""", (worker,
                                            workers[worker]['hr2'],
                                            workers[worker]['hr2'] * 0.001, # approx 1mh/s for 30 mins = 0.001 pirl
                                            price,
                                            current_time))
 
+    avg_hash = avg_hash / len(worker_keys)
+
+    print "Writing entries gathered from this iteration to the table at time {}".format(current_time)
+    print "THere are currently {} many miners".format(len(worker_keys))
+    print "Current average hashrate is {}".format(avg_hash)
     # Commit the entries to the table
     conn.commit()
     conn.close()

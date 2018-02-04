@@ -4,7 +4,8 @@ then
     /usr/local/bin/brew install python
 elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ];
 then
-    apt-get install python
+    sudo apt-get install python2.7
+    sudo apt-get install python-pip
 fi
 
 touch mining_ledger.csv
