@@ -32,8 +32,8 @@ def pull_from_pool():
     try:
         res = requests.get(POOL_MINER_API + POOL_MINER_ACCOUNT)
         if res.ok:
-            print "We hit the Pirl miner API just fine"
-            res.json()
+            print("We hit the Pirl miner API just fine")
+            return res.json()
         else:
             print("A non-ok status code was returned", res.status_code)
             return False
@@ -48,10 +48,10 @@ def get_pirl_price():
         page = urllib2.urlopen(PIRL_COIN_MARKET_CAP)
         soup = BeautifulSoup(page)
         # Grab the price from the page, given lovingly a good class name
-        price = soup.find('span', {'class': 'data-currency-value'}).text
+        price = soup.find('span', {'id': 'quote_price'})['data-usd']
     except Exception as e:
-        print "Error ocurred in find the price, will set as 0 for this iteration"
-        print e
+        print("Error ocurred in find the price, will set as 0 for this iteration")
+        print(e)
     return price
 
 def write_to_db(pool_information, price):
@@ -62,7 +62,7 @@ def write_to_db(pool_information, price):
         minername TEXT NOT NULL,
         hashrate INTEGER,
         coinsmined REAL,
-        price REAL,
+        price TEXT,
         timestamped TIMESTAMP
     )"""
     cursor.execute(sql)
@@ -81,7 +81,7 @@ def write_to_db(pool_information, price):
     avg_hash = 0
 
     for worker in worker_keys:
-        avg_hash = avg_hash + workers[worker['hr2']]
+        avg_hash = avg_hash + workers[worker]['h2']
         cursor.execute("""INSERT INTO ledger (minername,
         hashrate,
         coinsmined,
@@ -89,14 +89,14 @@ def write_to_db(pool_information, price):
         timestamped) VALUES (?, ?, ?, ?, ?)""", (worker,
                                            workers[worker]['hr2'],
                                            workers[worker]['hr2'] * 0.001, # approx 1mh/s for 30 mins = 0.001 pirl
-                                           price,
+                                           "$" + str(price),
                                            current_time))
 
     avg_hash = avg_hash / len(worker_keys)
 
-    print "Writing entries gathered from this iteration to the table at time {}".format(current_time)
-    print "THere are currently {} many miners".format(len(worker_keys))
-    print "Current average hashrate is {}".format(avg_hash)
+    print("Writing entries gathered from this iteration to the table at time {}".format(current_time))
+    print("THere are currently {} many miners".format(len(worker_keys)))
+    print("Current average hashrate is {}".format(avg_hash))
     # Commit the entries to the table
     conn.commit()
     conn.close()
@@ -111,9 +111,12 @@ def main():
         pool_information = pull_from_pool()
         # Check that the information could be pulled down
         if pool_information:
+            print("Information on pool was found")
             price = get_pirl_price()
             # Write all the information gathered to the sqlite3 database
             write_to_db(pool_information, price)
+        else:
+            print("Pool's closed")
         # Wait for a half hour
         time.sleep(1800)
 
